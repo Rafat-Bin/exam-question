@@ -1,0 +1,130 @@
+From e09532194f069c58c309f303e9009d1bef09cda6 Mon Sep 17 00:00:00 2001
+From: Rafat-Bin <rafatbinislam@gmail.com>
+Date: Wed, 3 Apr 2024 23:36:49 -0400
+Subject: [PATCH 1/3] Filter to only show Alberta Fires.
+
+---
+ q2.html | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/q2.html b/q2.html
+index b049c51..0006d22 100644
+--- a/q2.html
++++ b/q2.html
+@@ -27,7 +27,22 @@
+         fetch('https://cwfis.cfs.nrcan.gc.ca/geoserver/public/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=public:activefires_current&srsname=EPSG:4326&outputFormat=json')
+             .then(response => response.json())
+             .then(data => {
++                var albertaBoundaries = {
++                    north: 60.0,
++                    south: 49.0,
++                    east: -110.0,
++                    west: -120.0
++                };
++                function isWithinAlberta(lat, lon) {
++                    return albertaBoundaries.south <= lat && lat <= albertaBoundaries.north &&
++                        albertaBoundaries.west <= lon && lon <= albertaBoundaries.east;
++                }
+                 L.geoJSON(data.features, {
++                    filter: function(feature, layer) {
++                        var lat = feature.geometry.coordinates[1];
++                        var lon = feature.geometry.coordinates[0];
++                        return isWithinAlberta(lat, lon);
++                    },
+                     style: function (feature) {
+                         var options = {
+                             color: '#FF0000',
+-- 
+2.44.0
+
+
+From 72e66e01ff1ad1bda103e5f65cad6a7c477aac0c Mon Sep 17 00:00:00 2001
+From: Rafat-Bin <rafatbinislam@gmail.com>
+Date: Wed, 3 Apr 2024 23:58:36 -0400
+Subject: [PATCH 2/3] Display detailed fire information in popups.
+
+---
+ q2.html | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/q2.html b/q2.html
+index 0006d22..60761b1 100644
+--- a/q2.html
++++ b/q2.html
+@@ -37,6 +37,10 @@
+                     return albertaBoundaries.south <= lat && lat <= albertaBoundaries.north &&
+                         albertaBoundaries.west <= lon && lon <= albertaBoundaries.east;
+                 }
++                function formatDate(dateString) {
++                    var options = { year: 'numeric', month: 'short', day: 'numeric' };
++                    return new Date(dateString).toLocaleDateString('en-US', options);
++                }
+                 L.geoJSON(data.features, {
+                     filter: function(feature, layer) {
+                         var lat = feature.geometry.coordinates[1];
+@@ -53,6 +57,9 @@
+                     },
+                     onEachFeature: function (feature, layer) {
+                         var popupContent = "<p>"
++                            + "Fire Name: " + feature.properties.firename + "<br/>"
++                            + "Stage of Control: " + feature.properties.stage_of_control + "<br/>"
++                            + "Start Date: " + formatDate(feature.properties.startdate) + "<br/>"
+                             + "Size: " + feature.properties.hectares + "<br/>"
+                             + "</p>";
+                         layer.bindPopup(popupContent);
+-- 
+2.44.0
+
+
+From 4e907d7c81802c4da7718c4b7c1cbc2d53278d4e Mon Sep 17 00:00:00 2001
+From: Rafat-Bin <rafatbinislam@gmail.com>
+Date: Thu, 4 Apr 2024 00:09:49 -0400
+Subject: [PATCH 3/3] Adjust point opacity based on hectares.
+
+---
+ q2.html | 22 +++++++++++++---------
+ 1 file changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/q2.html b/q2.html
+index 60761b1..77b3fdc 100644
+--- a/q2.html
++++ b/q2.html
+@@ -47,14 +47,7 @@
+                         var lon = feature.geometry.coordinates[0];
+                         return isWithinAlberta(lat, lon);
+                     },
+-                    style: function (feature) {
+-                        var options = {
+-                            color: '#FF0000',
+-                            weight: 2,
+-                            fillOpacity: 0.5
+-                        }
+-                        return options;
+-                    },
++
+                     onEachFeature: function (feature, layer) {
+                         var popupContent = "<p>"
+                             + "Fire Name: " + feature.properties.firename + "<br/>"
+@@ -65,7 +58,18 @@
+                         layer.bindPopup(popupContent);
+                     },
+                     pointToLayer: function (feature, latlng) {
+-                        return L.circleMarker(latlng);
++                        var fillOpacity = 0.5; // Default fill opacity
++                        if (feature.properties.hectares <1 || feature.properties.hectares === null) {
++                            fillOpacity = 0; // To make transparent
++                        }
++                        else if (feature.properties.hectares > 1000) {
++                            fillOpacity = 1; // To make opaque
++                        }
++                        return L.circleMarker(latlng, {
++                            color: '#FF0000',
++                            weight: 2, 
++                            fillOpacity: fillOpacity
++                        });
+                     }
+                 }).addTo(map);
+             });
+-- 
+2.44.0
+
