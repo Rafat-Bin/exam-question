@@ -27,7 +27,22 @@
         fetch('https://cwfis.cfs.nrcan.gc.ca/geoserver/public/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=public:activefires_current&srsname=EPSG:4326&outputFormat=json')
             .then(response => response.json())
             .then(data => {
+                var albertaBoundaries = {
+                    north: 60.0,
+                    south: 49.0,
+                    east: -110.0,
+                    west: -120.0
+                };
+                function isWithinAlberta(lat, lon) {
+                    return albertaBoundaries.south <= lat && lat <= albertaBoundaries.north &&
+                        albertaBoundaries.west <= lon && lon <= albertaBoundaries.east;
+                }
                 L.geoJSON(data.features, {
+                    filter: function(feature, layer) {
+                        var lat = feature.geometry.coordinates[1];
+                        var lon = feature.geometry.coordinates[0];
+                        return isWithinAlberta(lat, lon);
+                    },
                     style: function (feature) {
                         var options = {
                             color: '#FF0000',
