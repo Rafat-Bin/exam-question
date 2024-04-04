@@ -37,6 +37,10 @@
                     return albertaBoundaries.south <= lat && lat <= albertaBoundaries.north &&
                         albertaBoundaries.west <= lon && lon <= albertaBoundaries.east;
                 }
+                function formatDate(dateString) {
+                    var options = { year: 'numeric', month: 'short', day: 'numeric' };
+                    return new Date(dateString).toLocaleDateString('en-US', options);
+                }
                 L.geoJSON(data.features, {
                     filter: function(feature, layer) {
                         var lat = feature.geometry.coordinates[1];
@@ -53,6 +57,9 @@
                     },
                     onEachFeature: function (feature, layer) {
                         var popupContent = "<p>"
+                            + "Fire Name: " + feature.properties.firename + "<br/>"
+                            + "Stage of Control: " + feature.properties.stage_of_control + "<br/>"
+                            + "Start Date: " + formatDate(feature.properties.startdate) + "<br/>"
                             + "Size: " + feature.properties.hectares + "<br/>"
                             + "</p>";
                         layer.bindPopup(popupContent);
