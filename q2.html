@@ -47,14 +47,7 @@
                         var lon = feature.geometry.coordinates[0];
                         return isWithinAlberta(lat, lon);
                     },
-                    style: function (feature) {
-                        var options = {
-                            color: '#FF0000',
-                            weight: 2,
-                            fillOpacity: 0.5
-                        }
-                        return options;
-                    },
+
                     onEachFeature: function (feature, layer) {
                         var popupContent = "<p>"
                             + "Fire Name: " + feature.properties.firename + "<br/>"
@@ -65,7 +58,18 @@
                         layer.bindPopup(popupContent);
                     },
                     pointToLayer: function (feature, latlng) {
-                        return L.circleMarker(latlng);
+                        var fillOpacity = 0.5; // Default fill opacity
+                        if (feature.properties.hectares <1 || feature.properties.hectares === null) {
+                            fillOpacity = 0; // To make transparent
+                        }
+                        else if (feature.properties.hectares > 1000) {
+                            fillOpacity = 1; // To make opaque
+                        }
+                        return L.circleMarker(latlng, {
+                            color: '#FF0000',
+                            weight: 2, 
+                            fillOpacity: fillOpacity
+                        });
                     }
                 }).addTo(map);
             });
